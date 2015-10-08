@@ -18,24 +18,28 @@ func new() *concurrentMap {
 	return &concurrentMap{make(map[string]int), &sync.RWMutex{}}
 }
 
-func (c *concurrentMap) set(name string, count int) {
-	c.Lock()
-	c.m[name] = count
-	c.Unlock()
+func (concurrentMap *concurrentMap) set(name string, count int) {
+	concurrentMap.Lock()
+	concurrentMap.m[name] = count
+	concurrentMap.Unlock()
 	return
 }
 
-func (c *concurrentMap) get(name string) (count int) {
-	c.RLock()
-	count = c.m[name]
-	c.RUnlock()
+func (concurrentMap *concurrentMap) get(name string) (count int) {
+	concurrentMap.RLock()
+	count = concurrentMap.m[name]
+	concurrentMap.RUnlock()
 	return count
 }
 
-func (c *concurrentMap) increment(name string) (count int) {
-	c.Lock()
-	c.m[name]++
-	count = c.m[name]
-	c.Unlock()
+func (concurrentMap *concurrentMap) increment(name string) (count int) {
+	concurrentMap.Lock()
+	concurrentMap.m[name]++
+	count = concurrentMap.m[name]
+	concurrentMap.Unlock()
 	return count
+}
+
+func (concurrentMap *concurrentMap) getMap() map[string]int {
+	return concurrentMap.m
 }

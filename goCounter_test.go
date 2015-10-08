@@ -42,4 +42,16 @@ func TestConcurrentMapIncrement(t *testing.T) {
 	if testMap.increment("zero") != 1 {
 		t.Error("Increment on map['zero']  did not return 1")
 	}
+
+	if testMap.increment("one") != 2 {
+		t.Error("Increment on map['one'] did not return 2")
+	}
+}
+
+func TestGetMap(t *testing.T) {
+	BeforeEach()
+	exportedMap := testMap.getMap()
+	if exportedMap["zero"] != 0 {
+		t.Error("getMap did not return the initialized map")
+	}
 }
