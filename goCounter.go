@@ -31,3 +31,11 @@ func (c *concurrentMap) get(name string) (count int) {
 	c.RUnlock()
 	return count
 }
+
+func (c *concurrentMap) increment(name string) (count int) {
+	c.Lock()
+	c.m[name]++
+	count = c.m[name]
+	c.Unlock()
+	return count
+}

@@ -11,7 +11,6 @@ func BeforeEach() {
 
 	testMap.m["zero"] = 0
 	testMap.m["one"] = 1
-	testMap.m["many"] = 9
 }
 
 func TestConcurrentMapGet(t *testing.T) {
@@ -29,7 +28,18 @@ func TestConcurrentMapSet(t *testing.T) {
 	BeforeEach()
 	testMap.set("test", 66)
 	if testMap.get("test") != 66 {
-		t.Error("Set on map['test'] of 66 did not return 66 on a get")
+		t.Error("Set on previosly un-initialized map['test'] of 66 did not return 66 on a get")
 	}
 
+	testMap.set("test", 22)
+	if testMap.get("test") != 22 {
+		t.Error("Set on already initialized map['test'] of 22 did not return 22 on a get")
+	}
+}
+
+func TestConcurrentMapIncrement(t *testing.T) {
+	BeforeEach()
+	if testMap.increment("zero") != 1 {
+		t.Error("Increment on map['zero']  did not return 1")
+	}
 }
