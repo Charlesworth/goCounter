@@ -6,141 +6,83 @@ import (
 	"testing"
 
 	"github.com/Charlesworth/goCounter/concurrentMap"
-	"github.com/julienschmidt/httprouter"
 )
 
-func TestMain(t *testing.T) {
-
+type handlerTest struct {
+	TestName       string
+	Method         string
+	Path           string
+	QueryString    string
+	ExpectedStatus int
+	ExpectedBody   string
 }
 
-type getCountHandlerTestStruct struct {
-	pageName           string
-	url                string
-	expectedReturnCode int
-	expectedMapValue   int
+var handlerTests = []handlerTest{
+	{TestName: "test setCountHandler with valid query string on new page",
+		Method:         "PUT",
+		Path:           "/newPage",
+		QueryString:    "?count=1",
+		ExpectedStatus: http.StatusOK},
+	{TestName: "test setCountHandler with valid query string on existing page",
+		Method:         "PUT",
+		Path:           "/pageInitialisedWithCount1",
+		QueryString:    "?count=1",
+		ExpectedStatus: http.StatusOK},
+	{TestName: "test setCountHandler with invalid query string",
+		Method:         "PUT",
+		Path:           "/newPage",
+		QueryString:    "?count=one",
+		ExpectedStatus: 400,
+		ExpectedBody:   "Unable to parse PUT form value 'Count'"},
+	{TestName: "test setCountHandler with empty query string",
+		Method:         "PUT",
+		Path:           "/newPage",
+		QueryString:    "?count=",
+		ExpectedStatus: 400,
+		ExpectedBody:   "Unable to parse PUT form value 'Count'"},
+	{TestName: "test setCountHandler with no query string",
+		Method:         "PUT",
+		Path:           "/newPage",
+		ExpectedStatus: 400,
+		ExpectedBody:   "Unable to parse PUT form value 'Count'"},
+	{TestName: "test getCountHandler on new page",
+		Method:         "GET",
+		Path:           "/newPage/count.js",
+		ExpectedStatus: 200,
+		ExpectedBody:   "document.getElementById('viewCount').innerHTML = '1 Page Views';"},
+	{TestName: "test getCountHandler on existing page",
+		Method:         "GET",
+		Path:           "/pageInitialisedWithCount1/count.js",
+		ExpectedStatus: 200,
+		ExpectedBody:   "document.getElementById('viewCount').innerHTML = '2 Page Views';"},
+	{TestName: "test getStatsHandler",
+		Method:         "GET",
+		Path:           "/",
+		ExpectedStatus: 200,
+		ExpectedBody:   "Page: [ pageInitialisedWithCount1 ] Views: 1\n"},
 }
 
-func TestGetCountHandler(t *testing.T) {
-	pageViewMap = concurrentMap.New()
+func TestAllHandlers(t *testing.T) {
+	testServer := Server{}
 
-	router := httprouter.New()
-	router.GET("/:pageID/count.js", getCountHandler)
+	testRouter := newRouter(&testServer)
 
-	tableTestStruct := [3]getCountHandlerTestStruct{
-		//test case 0: add "test1" to the counter
-		{"page1", "/page1/count.js", 200, 1},
-		//test case 1: add a second "test1" to the counter
-		{"page1", "/page1/count.js", 200, 2},
-		//test case 2: add "test2" to the counter
-		{"page2", "/page2/count.js", 200, 1},
-	}
+	for i := range handlerTests {
+		testMap := concurrentMap.New()
+		testMap.Increment("pageInitialisedWithCount1")
+		testServer.pageViewMap = testMap
 
-	for i := range tableTestStruct {
+		//make the test request and response and then serve the handler.
 		w := httptest.NewRecorder()
+		req, _ := http.NewRequest(handlerTests[i].Method, handlerTests[i].Path+handlerTests[i].QueryString, nil)
+		testRouter.ServeHTTP(w, req)
 
-		req, _ := http.NewRequest("GET", tableTestStruct[i].url, nil)
-
-		router.ServeHTTP(w, req)
-		if w.Code != tableTestStruct[i].expectedReturnCode {
-			t.Error("getCountHandler test case", i, "returned", w.Code, "instead of", tableTestStruct[i].expectedReturnCode)
+		if w.Code != handlerTests[i].ExpectedStatus {
+			t.Error(handlerTests[i].TestName, "returned status code", w.Code, "instead of", handlerTests[i].ExpectedStatus)
 		}
 
-		mapValue := pageViewMap.Get(tableTestStruct[i].pageName)
-		if mapValue != tableTestStruct[i].expectedMapValue {
-			t.Error("getCountHandler test case", i, " expected", tableTestStruct[i].expectedMapValue,
-				"in pageViewMap instead of", mapValue)
+		if w.Body.String() != handlerTests[i].ExpectedBody {
+			t.Error(handlerTests[i].TestName, "returned body:\n{", w.Body.String(), "}\ninstead of:\n{", handlerTests[i].ExpectedBody, "}")
 		}
-	}
-}
-
-type setCountHandlerTestStruct struct {
-	pageName           string
-	url                string
-	expectedReturnCode int
-	expectedMapValue   int
-}
-
-func TestSetCountHandler(t *testing.T) {
-	pageViewMap = concurrentMap.New()
-
-	router := httprouter.New()
-	router.PUT("/:pageID", setCountHandler)
-
-	tableTestStruct := [3]setCountHandlerTestStruct{
-		//test case 0: set "test1" to 1 count
-		{"page1", "/page1?count=1", 200, 1},
-		//test case 1: set "test1" to 0 count
-		{"page1", "/page1?count=0", 200, 0},
-		//test case 2: set "test1" to 10000 count
-		{"page2", "/page2?count=10000", 200, 10000},
-	}
-
-	for i := range tableTestStruct {
-		w := httptest.NewRecorder()
-
-		req, _ := http.NewRequest("PUT", tableTestStruct[i].url, nil)
-
-		router.ServeHTTP(w, req)
-		if w.Code != tableTestStruct[i].expectedReturnCode {
-			t.Error("setCountHandler test case", i, "returned", w.Code, "instead of", tableTestStruct[i].expectedReturnCode)
-		}
-
-		mapValue := pageViewMap.Get(tableTestStruct[i].pageName)
-		if mapValue != tableTestStruct[i].expectedMapValue {
-			t.Error("setCountHandler test case", i, " expected", tableTestStruct[i].expectedMapValue,
-				"in pageViewMap instead of", mapValue)
-		}
-	}
-}
-
-func TestSetCountHandlerInvalidQueryString(t *testing.T) {
-	pageViewMap = concurrentMap.New()
-
-	router := httprouter.New()
-	router.PUT("/:pageID", setCountHandler)
-
-	tableTestStruct := [2]setCountHandlerTestStruct{
-		//test case 0: set "test1" with text instead of a number in the count query string
-		{"page1", "/page1?count=ten", 400, 0},
-		//test case 1: set "test1" with empty query string
-		{"page1", "/page1?count=", 400, 0},
-	}
-
-	for i := range tableTestStruct {
-		w := httptest.NewRecorder()
-
-		req, _ := http.NewRequest("PUT", tableTestStruct[i].url, nil)
-
-		router.ServeHTTP(w, req)
-		if w.Code != tableTestStruct[i].expectedReturnCode {
-			t.Error("setCountHandler test case", i, "returned", w.Code, "instead of", tableTestStruct[i].expectedReturnCode)
-		}
-
-		mapValue := pageViewMap.Get(tableTestStruct[i].pageName)
-		if mapValue != tableTestStruct[i].expectedMapValue {
-			t.Error("setCountHandler test case", i, " expected", tableTestStruct[i].expectedMapValue,
-				"in pageViewMap instead of", mapValue)
-		}
-	}
-}
-
-func TestGetStatsHandler(t *testing.T) {
-	pageViewMap = concurrentMap.New()
-	pageViewMap.Set("test", 8)
-
-	router := httprouter.New()
-	router.GET("/", getStatsHandler)
-
-	w := httptest.NewRecorder()
-
-	req, _ := http.NewRequest("GET", "/", nil)
-
-	router.ServeHTTP(w, req)
-	if w.Code != 200 {
-		t.Error("getStatsHandler did not return 200 on a valid request")
-	}
-	expectedStringOutput := "Page: [ test ] Views: 8\n"
-	if w.Body.String() != expectedStringOutput {
-		t.Error("getStatsHandler returned:\n", w.Body.String(), "and expected:\n", expectedStringOutput)
 	}
 }
