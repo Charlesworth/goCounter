@@ -11,6 +11,10 @@ func New() *Map {
 	return &Map{make(map[string]int), &sync.RWMutex{}}
 }
 
+func CreateIfNotExists() {
+
+}
+
 func (concurrentMap *Map) Set(name string, count int) {
 	concurrentMap.Lock()
 	concurrentMap.m[name] = count

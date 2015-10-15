@@ -2,11 +2,9 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/Charlesworth/goCounter/concurrentMap"
 	"github.com/julienschmidt/httprouter"
@@ -18,7 +16,8 @@ type Server struct {
 
 func main() {
 	server := Server{pageViewMap: concurrentMap.New()}
-	server.saveMap()
+	//server := Server{pageViewMap: concurrentMap.CreateIfNotExists("pageViewMap")}
+	//server.pageViewMap.SaveEveryInterval(time.Hour)
 	http.Handle("/", newRouter(&server))
 
 	//start the server and listen for requests
@@ -66,14 +65,4 @@ func (server *Server) getCountHandler(w http.ResponseWriter, r *http.Request, pa
 	pageViews := server.pageViewMap.Increment(pageName)
 
 	fmt.Fprintf(w, "document.getElementById('viewCount').innerHTML = '%v Page Views';", pageViews)
-}
-
-func (server *Server) saveMap() {
-	ticker := time.NewTicker(time.Minute) //time.Hour)
-	go func() {
-		for _ = range ticker.C {
-			pageViewByte := []byte(fmt.Sprint(server.pageViewMap.GetMap()))
-			ioutil.WriteFile("data/savedMap", pageViewByte, 0644)
-		}
-	}()
 }
