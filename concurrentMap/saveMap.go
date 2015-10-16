@@ -6,43 +6,45 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"sync"
+	"time"
 )
 
-func (concurrentMap *Map) SaveEveryInterval() {
-	// ticker := time.NewTicker(time.Minute) //time.Hour)
-	// go func() {
-	// 	for _ = range ticker.C {
-	// 		pageViewByte := []byte(fmt.Sprint(concurrentMap.GetMap()))
-	// 		ioutil.WriteFile("data/savedMap", pageViewByte, 0644)
-	// 	}
-	// }()
+func (concurrentMap *Map) SaveEveryInterval(fileName string, saveInterval time.Duration) {
+	ticker := time.NewTicker(saveInterval)
+	go func() {
+		for _ = range ticker.C {
+			concurrentMap.Save(fileName)
+		}
+	}()
 }
 
 func (concurrentMap *Map) Save(fileName string) {
 	mapToSave := concurrentMap.GetMap()
 	jsonByte, err := mapToJson(mapToSave)
 	if err != nil {
-		log.Fatal(err)
+		log.Println("Error, unable to Save map with error {", err, "}")
 	}
 
+	os.Remove(fileName)
 	err = saveByteToFile(jsonByte, fileName)
 	if err != nil {
-		log.Fatal(err)
+		log.Println("Error, unable to Save map with error {", err, "}")
 	}
 }
 
-func LoadOrCreateIfDoesntExist(fileName string) (concurrentMap *Map) {
-	// if !fileExists(fileName) {
-	// 	return
-	// }
-	//
-	// jsonMapByte, err := ioutil.ReadFile(fileLocation)
-	// if err != nil {
-	// 	return nil, errors.New("LoadMap() failed to read mapSaveFile: " + err.Error())
-	// }
-	//
-	// jsonToMap(jsonByte []byte)
-	return New()
+func LoadOrCreateIfDoesntExist(fileName string) (concurrentMap *Map, err error) {
+	if !fileExists(fileName) {
+		return New(), nil
+	}
+
+	jsonMapByte, err := ioutil.ReadFile(fileName)
+	if err != nil {
+		return nil, errors.New("LoadMap() failed to read mapSaveFile: " + err.Error())
+	}
+
+	loadedMap, err := jsonToMap(jsonMapByte)
+	return &Map{loadedMap, &sync.RWMutex{}}, nil
 }
 
 func mapToJson(m map[string]int) ([]byte, error) {
@@ -54,21 +56,9 @@ func mapToJson(m map[string]int) ([]byte, error) {
 }
 
 func saveByteToFile(data []byte, fileName string) error {
-	err := ioutil.WriteFile(fileName, data, 644)
+	err := ioutil.WriteFile(fileName, data, 777)
 	return err
 }
-
-// func SaveMap(m map[string]int, fileLocation string) error {
-// 	jsonMapByte, err := json.Marshal(m)
-// 	if err != nil {
-// 		return errors.New("SaveMap() failed to marshal map to JSON with error: " + err.Error())
-// 	}
-// 	err = ioutil.WriteFile(fileLocation, jsonMapByte, 0644)
-// 	if err != nil {
-// 		return errors.New("SaveMap() failed to write JSON map to file: " + err.Error())
-// 	}
-// 	return nil
-// }
 
 func fileExists(fileName string) bool {
 	if _, err := os.Stat(fileName); err == nil {
@@ -85,20 +75,3 @@ func jsonToMap(jsonByte []byte) (map[string]int, error) {
 	}
 	return outputMap, nil
 }
-
-// func LoadMap(fileLocation string) (map[string]int, error) {
-// 	if _, err := os.Stat(fileLocation); os.IsNotExist(err) {
-// 		return nil, nil
-// 	}
-//
-// 	jsonMapByte, err := ioutil.ReadFile(fileLocation)
-// 	if err != nil {
-// 		return nil, errors.New("LoadMap() failed to read mapSaveFile: " + err.Error())
-// 	}
-// 	outputMap := make(map[string]int)
-// 	err = json.Unmarshal(jsonMapByte, &outputMap)
-// 	if err != nil {
-// 		return nil, errors.New("LoadMap() failed to unmarshal mapSaveFile JSON: " + err.Error())
-// 	}
-// 	return outputMap, nil
-// }

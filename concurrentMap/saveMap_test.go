@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
+	"time"
 )
 
 func TestMapToJson(t *testing.T) {
@@ -60,4 +61,37 @@ func TestJsonToMap(t *testing.T) {
 	if (validMap["page1"] != 1) && (validMap["page2"] != 2) {
 		t.Error("jsonToMap with valid json did not return correctly initialised map with values")
 	}
+}
+
+func TestSaveAndLoad(t *testing.T) {
+	testSavedMap := New()
+	testSavedMap.Set("test1", 123)
+	testSavedMap.Save("testFile")
+	defer os.Remove("testFile")
+
+	testLoadedMap, err := LoadOrCreateIfDoesntExist("testFile")
+	if testLoadedMap.Get("test1") != 123 {
+		t.Error("Load() on a saved concurrent map did not load the correct values into the map")
+	}
+
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func TestSaveEveryInterval(t *testing.T) {
+	testSavedMap := New()
+	testSavedMap.Set("test1", 123)
+	testSavedMap.SaveEveryInterval("testFile", time.Millisecond*5)
+	defer os.Remove("testFile")
+
+	if fileExists("testFile") {
+		t.Error("SaveEveryInterval() saved file before the first time interval had ended")
+	}
+
+	time.Sleep(time.Millisecond * 10)
+	if !fileExists("testFile") {
+		t.Error("SaveEveryInterval() failed to save file after time interval had ended")
+	}
+
 }
