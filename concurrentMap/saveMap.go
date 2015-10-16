@@ -31,10 +31,13 @@ func (concurrentMap *Map) Save(fileName string) {
 	if err != nil {
 		log.Println("Error, unable to Save map with error {", err, "}")
 	}
+
+	log.Println("Saved Map to ", fileName)
 }
 
 func LoadOrCreateIfDoesntExist(fileName string) (concurrentMap *Map, err error) {
 	if !fileExists(fileName) {
+		log.Println("No save file found at", fileName, ", making new Map")
 		return New(), nil
 	}
 
@@ -44,6 +47,7 @@ func LoadOrCreateIfDoesntExist(fileName string) (concurrentMap *Map, err error) 
 	}
 
 	loadedMap, err := jsonToMap(jsonMapByte)
+	log.Println("Successfully loaded Map from", fileName)
 	return &Map{loadedMap, &sync.RWMutex{}}, nil
 }
 

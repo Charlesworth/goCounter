@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/Charlesworth/goCounter/concurrentMap"
 	"github.com/julienschmidt/httprouter"
@@ -14,10 +15,15 @@ type Server struct {
 	pageViewMap *concurrentMap.Map
 }
 
+var saveLocation = "data/savedMap"
+
 func main() {
-	server := Server{pageViewMap: concurrentMap.New()}
-	//server := Server{pageViewMap: concurrentMap.CreateIfNotExists("pageViewMap")}
-	//server.pageViewMap.SaveEveryInterval(time.Hour)
+	loadedPageViewMap, err := concurrentMap.LoadOrCreateIfDoesntExist(saveLocation)
+	if err != nil {
+		log.Fatal(err)
+	}
+	server := Server{pageViewMap: loadedPageViewMap}
+	server.pageViewMap.SaveEveryInterval(saveLocation, time.Hour)
 	http.Handle("/", newRouter(&server))
 
 	//start the server and listen for requests
