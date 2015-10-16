@@ -1,4 +1,5 @@
 FROM alpine:3.2
+MAINTAINER Charles Cochrane <cochrane26@gmail.com>
 
 ENV GOROOT=/usr/lib/go \
     GOPATH=/gopath \
