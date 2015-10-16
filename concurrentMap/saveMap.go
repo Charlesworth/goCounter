@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io/ioutil"
+	"log"
 	"os"
 )
 
@@ -17,12 +18,31 @@ func (concurrentMap *Map) SaveEveryInterval() {
 	// }()
 }
 
-func (concurrentMap *Map) Save() {
+func (concurrentMap *Map) Save(fileName string) {
+	mapToSave := concurrentMap.GetMap()
+	jsonByte, err := mapToJson(mapToSave)
+	if err != nil {
+		log.Fatal(err)
+	}
 
+	err = saveByteToFile(jsonByte, fileName)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
-func Load() {
-
+func LoadOrCreateIfDoesntExist(fileName string) (concurrentMap *Map) {
+	// if !fileExists(fileName) {
+	// 	return
+	// }
+	//
+	// jsonMapByte, err := ioutil.ReadFile(fileLocation)
+	// if err != nil {
+	// 	return nil, errors.New("LoadMap() failed to read mapSaveFile: " + err.Error())
+	// }
+	//
+	// jsonToMap(jsonByte []byte)
+	return New()
 }
 
 func mapToJson(m map[string]int) ([]byte, error) {
