@@ -15,7 +15,7 @@ type Server struct {
 	pageViewMap *concurrentMap.Map
 }
 
-var saveLocation = "data/savedMap"
+var saveLocation = "savedMap"
 
 func main() {
 	loadedPageViewMap, err := concurrentMap.LoadOrCreateIfDoesntExist(saveLocation)
