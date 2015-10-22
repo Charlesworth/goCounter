@@ -1,6 +1,6 @@
 # goCounter
 
-A webserver that implements a page count service on port 3000.
+A webserver that implements a page count service on port 3000.s
 
 ## Run with Docker
 ```
@@ -8,8 +8,8 @@ $ docker build -t gocounter
 $ docker run -p 3000:3000 gocounter
 ```
 
-## Run natively
+## Run natively (with Go installed)
 ```
-$ docker build -t gocounter
-$ docker run -p 3000:3000 gocounter
+$ go build
+$ ./goCounter
 ```
